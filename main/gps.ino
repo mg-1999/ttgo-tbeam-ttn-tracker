@@ -68,7 +68,7 @@ static void gps_loop() {
 #if defined(PAYLOAD_USE_FULL)
 
     // More data than PAYLOAD_USE_CAYENNE
-    void buildPacket(uint8_t txBuffer[10])
+    void buildPacket(uint8_t txBuffer[12], int bat)
     {
         LatitudeBinary = ((_gps.location.lat() + 90) / 180.0) * 16777215;
         LongitudeBinary = ((_gps.location.lng() + 180) / 360.0) * 16777215;
@@ -86,6 +86,8 @@ static void gps_loop() {
         Serial.println(t);
         sprintf(t, "Sats: %d", sats);
         Serial.println(t);
+        sprintf(t, "Battery: %d", bat);
+        Serial.println(t);
 
         txBuffer[0] = ( LatitudeBinary >> 16 ) & 0xFF;
         txBuffer[1] = ( LatitudeBinary >> 8 ) & 0xFF;
@@ -97,6 +99,8 @@ static void gps_loop() {
         txBuffer[7] = altitudeGps & 0xFF;
         txBuffer[8] = hdopGps & 0xFF;
         txBuffer[9] = sats & 0xFF;
+        txBuffer[10] = bat & 0xFF;
+        
     }
 
 #elif defined(PAYLOAD_USE_CAYENNE)

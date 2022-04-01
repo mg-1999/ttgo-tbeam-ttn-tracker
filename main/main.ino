@@ -37,8 +37,8 @@ bool axp192_found = false;
 bool packetSent, packetQueued;
 
 #if defined(PAYLOAD_USE_FULL)
-    // includes number of satellites and accuracy
-    static uint8_t txBuffer[10];
+    // includes number of satellites, accuracy and battery level
+    static uint8_t txBuffer[12];
 #elif defined(PAYLOAD_USE_CAYENNE)
     // CAYENNE DF
     static uint8_t txBuffer[11] = {0x03, 0x88, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
@@ -62,6 +62,13 @@ bool trySend() {
     packetSent = false;
     // We also wait for altitude being not exactly zero, because the GPS chip generates a bogus 0 alt report when first powered on
     if (0 < gps_hdop() && gps_hdop() < 50 && gps_latitude() != 0 && gps_longitude() != 0 && gps_altitude() != 0) {
+        int batV = axp.getBattVoltage();
+        int batLow = 3270;
+        int batFull = 4200;
+        
+        float bat = constrain((((batV - batLow) * 1e2) / (batFull - batLow)), 0, 100);
+        int vatl = (long) (bat * 10L)/10.0;
+        
         char buffer[40];
         snprintf(buffer, sizeof(buffer), "Latitude: %10.6f\n", gps_latitude());
         screen_print(buffer);
@@ -69,8 +76,11 @@ bool trySend() {
         screen_print(buffer);
         snprintf(buffer, sizeof(buffer), "Error: %4.2fm\n", gps_hdop());
         screen_print(buffer);
+        
+        Serial.println("Battery: " + vatl);
+        Serial.println(axp.getBattVoltage());
 
-        buildPacket(txBuffer);
+        buildPacket(txBuffer, bat);
 
     #if LORAWAN_CONFIRMED_EVERY > 0
         bool confirmed = (ttn_get_count() % LORAWAN_CONFIRMED_EVERY == 0);
@@ -81,6 +91,9 @@ bool trySend() {
 
     packetQueued = true;
     ttn_send(txBuffer, sizeof(txBuffer), LORAWAN_PORT, confirmed);
+    
+    Serial.print(sizeof(txBuffer));
+    Serial.println(F(" bytes long packet sent."));
     return true;
     }
     else {
