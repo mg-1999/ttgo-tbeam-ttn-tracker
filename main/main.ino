@@ -67,6 +67,10 @@ bool trySend() {
         int batFull = 4200;
         
         float bat = constrain((((batV - batLow) * 1e2) / (batFull - batLow)), 0, 100);
+        // Make sure our battery percentage is a valid amount
+        if(bat < 0) bat = 0;
+        else if(bat > 100) bat = 100;
+      
         int vatl = (long) (bat * 10L)/10.0;
         
         char buffer[40];
